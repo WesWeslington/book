@@ -202,7 +202,7 @@ On the Verse VM, bitwise operations support arbitrarily large integers
 
 ### Bit Shift Operations
 
-Verse provides bit shifts for integers through two intrinsic functions:
+Verse provides bit shifts for integers through two functions:
 `BitShiftLeft` and `BitShiftRight`. Each takes a value and a shift
 count, and operates on the two's complement binary representation of
 the value. Unlike the bitwise operations, the shifts are failable: they
@@ -297,13 +297,15 @@ BitAnd(BitShiftRight[Packed, 4], 15) = 5    # high field
 BitAnd(Packed, 15) = 10                     # low field
 ```
 
-On the Verse VM, shifting left grows the value beyond 2^64, up to an
-implementation limit of 2^20 bits: `BitShiftLeft[1, 1048575]` succeeds,
-while `BitShiftLeft[1, 1048576]` raises a runtime error. On the Blueprint
-VM, the result must fit within the 64-bit signed integer range (-2^63
-to 2^63-1), so `BitShiftLeft[1, 63]` raises a runtime error while
-`BitShiftLeft[-1, 63]` produces exactly -2^63. Shifting right can never
-overflow on either VM.
+Integers in Verse are arbitrary precision, so shifting left grows the
+result beyond 64 bits rather than wrapping around:
+
+<!--versetest-->
+<!-- 12 -->
+```verse
+BitShiftLeft[1, 64] = (9223372036854775807 + 1) * 2  # 2^64
+BitShiftRight[BitShiftLeft[1, 200], 200] = 1
+```
 
 ## Comparison Operators
 
@@ -336,7 +338,7 @@ Health:float = 0.0
 CurrentState:game_state = game_state.Paused
 Level:int = 15
 -->
-<!-- 12 -->
+<!-- 13 -->
 ```verse
 # Numeric comparisons
 if (Score > HighScore):
@@ -367,7 +369,7 @@ The following types support equality comparison operations (`=` and `<>`):
 Comparisons between different types still compile, but they always fail:
 
 <!--versetest-->
-<!-- 13 -->
+<!-- 14 -->
 ```verse
 not (0 = 0.0)   # int is never equal to float
 not ("5" = 5)   # string is never equal to int
@@ -384,7 +386,7 @@ The query operator checks if a `logic` value is `true` (see [Failure](08_failure
 <!--versetest
 StartGame():void={}
 -->
-<!-- 14 -->
+<!-- 15 -->
 ```verse
 IsReady:logic = true
 
@@ -402,7 +404,7 @@ The `not` operator negates the success or failure of an expression:
 <!--versetest
 ContinuePlaying()<computes>:void={}
 -->
-<!-- 15 -->
+<!-- 16 -->
 ```verse
 IsGameOver:logic = false
 
@@ -427,7 +429,7 @@ DoorUnlocked:?int = option{1}
 QuickCheck()<computes><decides>:void = {}
 ExpensiveCheck()<computes><decides>:void = {}
 -->
-<!-- 16 -->
+<!-- 17 -->
 ```verse
 if (HasKey? and DoorUnlocked?):
     EnterRoom()
@@ -449,7 +451,7 @@ HasMasterKey:?int = option{1}
 QuickCheck()<computes><decides>:void = {}
 ExpensiveCheck()<computes><decides>:void = {}
 -->
-<!-- 17 -->
+<!-- 18 -->
 ```verse
 if (HasKeyCard? or HasMasterKey?):
     OpenDoor()
@@ -475,7 +477,7 @@ Consider two expressions `P` and `Q` which may either succeed or fail, the follo
 When initializing constants and variables, both `=` and `:=` can be used if an explicit type is provided. For type inference (no type annotation), you must use `:=`.
 
 <!--versetest-->
-<!-- 18 -->
+<!-- 19 -->
 ```verse
 # Constant initialization with explicit types - both = and := work
 MaxHealth:int = 100
@@ -496,7 +498,7 @@ The `set =` operator updates variable values:
 <!--versetest
 vector3:=struct{X:float, Y:float, Z:float}
 -->
-<!-- 19 -->
+<!-- 20 -->
 ```verse
 var Points:int = 0
 set Points = 100
@@ -517,7 +519,7 @@ The square bracket operator is used for multiple purposes in Verse:
 <!--versetest
 Damage(Base:int, ?Bonus:int = 0)<computes><decides>:int = Base + Bonus
 -->
-<!-- 20 -->
+<!-- 21 -->
 ```verse
 # Array indexing (failable)
 Scores := array{10, 20, 30}
@@ -542,7 +544,7 @@ Damage[10, ?Bonus := 5] = 15   # named argument
 The dot operator accesses fields and methods of objects:
 
 <!--versetest-->
-<!-- 21 -->
+<!-- 22 -->
 ```verse
 weapon := class<computes>{Damage:float = 25.0}
 player := class<computes>{Weapon:weapon = weapon{}, GetName()<computes>:string = "Hero"}
@@ -557,7 +559,7 @@ Player.Weapon.Damage = 25.0  # member access chains left to right
 The range operator creates ranges for iteration:
 
 <!--versetest-->
-<!-- 22 -->
+<!-- 23 -->
 ```verse
 # Ranges are inclusive at both ends
 Indices := for (I := 0..4) { I }
@@ -569,7 +571,7 @@ Indices = array{0, 1, 2, 3, 4}
 Verse provides multiple syntaxes for constructing objects. All of the following are equivalent:
 
 <!--versetest-->
-<!-- 23 -->
+<!-- 24 -->
 ```verse
 point := struct{X:int = 0, Y:int = 0}
 
@@ -604,7 +606,7 @@ Point5 = point{X := 10, Y := 0}
 Round braces when used with a single argument after a tuple expression, accesses tuple elements:
 
 <!--versetest-->
-<!-- 24 -->
+<!-- 25 -->
 ```verse
 MyTuple := (10, 20, 30)
 MyTuple(0) = 10
@@ -616,7 +618,7 @@ MyTuple(2) = 30
 Verse has limited implicit type conversion. Most conversions must be explicit:
 
 <!--versetest-->
-<!-- 25 -->
+<!-- 26 -->
 ```verse
 # No implicit int to float conversion
 Count:int = 42
@@ -634,7 +636,7 @@ Message = "Score: 100"
 When operators work with mixed types, specific rules apply:
 
 <!--versetest-->
-<!-- 26 -->
+<!-- 27 -->
 ```verse
 # int and float mix under *, and the result is a float
 5 * 2.0 = 10.0
